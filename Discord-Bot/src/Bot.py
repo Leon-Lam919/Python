@@ -1,23 +1,79 @@
+#create bot
+#imported libs
+import json
 import os
 import asyncio
 import requests
-import json
-#create bot
-
-# imports discord lib and dotenv lib
-# dotenv is used for getting env without having to call it everyime
 import discord
+from discord.ext import commands, tasks
+import youtube_dl
 from dotenv import load_dotenv
 
-intents = discord.Intents.default()
+intents = discord.Intents.all()
 intents.message_content = True
-
+bot = commands.bot(command_prefix='$', intents=intents)
 
 # calls DISCORD_TOKEN to get discord token from .env file
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 
-client = discord.Client(intents=intents)
+#youtube music
+youtube_dl.utils.bug_reports_message = lambda: ''
+
+ytdl_format_options ={
+    'format' : 'bestaudio/best',
+    'restrictfilenames' : True,
+    'noplaylist' : True,
+    'nocheckcertificate' : True, 
+    'ignoreerrors' : False, 
+    'logtostderr' : False, 
+    'quiet' : True, 
+    'no_warnings' : True, 
+    'default_search' : 'auto', 
+    'source_address' : '0.0.0.0'
+}
+
+ffmeg_options = {
+    'options' : '-vn'
+}
+
+ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
+
+#YT volume transformer
+class YTDLSource(discord.PCMVolumeTransformer):
+    def __init__(self, source, *, data, volume=0.5):
+        super().__init__(source, volume)
+        self.data = data
+        self.title = data.get('title')
+        self.url = ""
+
+    # gets the filename for YT
+    @classmethod
+    async def from_url(cls, url, *, loop=None, stream=False):
+        loop = loop or asyncio.get_event_loop()
+        data = await loop.run_in_executor(None, lambda: ytdl.extract_info(url, download=not stream))
+        if 'entries' in data:
+            data = data['entries'][0]
+        filename = data['title'] if stream else ytdl.prepare_filename(data)
+        return filename
+        
+@bot.command(name='join', help='Tells bot to join the voice channel')
+async def join(ctx):
+    if not ctx.message.author.voice:
+        await ctx.send("{} is not connected to a voice channel".format(ctx.message.author.voice))
+        return
+    else:
+        channel = ctx.message.author.voice.channel
+    await channel.connect()
+    
+@bot.command(name='leave', help='To make bot leave channel')
+async def leave(ctx):
+    voice_client = ctx.message.guild.voice_client
+    if voice_client.is_connected():
+        await voice_client.disconnect()
+    else:
+        await ctx.send("The bot is not connected to a voice channel.")
+    
 
 # func to pull quotes from website
 def get_quote():
@@ -27,14 +83,14 @@ def get_quote():
     return(quote)
 
 #lets discord server know bot has entered server
-@client.event
+@bot.event
 async def on_ready():
-    print(f'{client.user} has connected to Discord')
+    print(f'{bot.user} has connected to Discord')
     
 # reads user input and will outputt hello
-@client.event
+@bot.event
 async def on_message(message):
-    if message.author == client.user:
+    if message.author == bot.user:
         return
     
     if message.content.startswith('$hello'):
@@ -48,4 +104,4 @@ async def on_message(message):
         quote = get_quote()
         await message.channel.send(quote)
     
-client.run(TOKEN)
+bot.run(TOKEN)
