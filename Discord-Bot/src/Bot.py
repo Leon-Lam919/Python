@@ -11,6 +11,8 @@ from dotenv import load_dotenv
 
 intents = discord.Intents.default()
 intents.message_content = True
+intents.members = True
+client = discord.Client(intents=intents)
 bot = commands.bot(command_prefix='$', intents=intents)
 
 # calls DISCORD_TOKEN to get discord token from .env file
