@@ -9,9 +9,15 @@ from discord.ext import commands, tasks
 import youtube_dl
 from dotenv import load_dotenv
 
-intents = discord.Intents.all()
+intents = discord.Intents.default()
 intents.message_content = True
+<<<<<<< HEAD
 bot = commands.Bot(command_prefix='$', intents=intents)
+=======
+intents.members = True
+client = discord.Client(intents=intents)
+bot = commands.bot(command_prefix='$', intents=intents)
+>>>>>>> 0d7bc6cefa3a3c45e981bbc9036b4e14adaaea5e
 
 # calls DISCORD_TOKEN to get discord token from .env file
 load_dotenv()
