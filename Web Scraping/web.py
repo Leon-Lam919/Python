@@ -1,9 +1,12 @@
 import requests
+from bs4 import BeautifulSoup
 
-r= requests.get('https://codedamn-classrooms.github.io/webscraper-python-codedamn-classroom-website/')
+URL= requests.get('https://realpython.github.io/fake-jobs/')
 
-text = r.text
-status = r.status_code
+text = URL.text
+status = URL.status_code
 
-print(text, status)
+soup = BeautifulSoup(URL.content, "html.parser")
 
+results = soup.find(id="ResultsContainer")
+print(results.prettify())
