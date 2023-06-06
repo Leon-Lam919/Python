@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 
 intents = discord.Intents.all()
 intents.message_content = True
-bot = commands.bot(command_prefix='$', intents=intents)
+bot = commands.Bot(command_prefix='$', intents=intents)
 
 # calls DISCORD_TOKEN to get discord token from .env file
 load_dotenv()
@@ -103,5 +103,8 @@ async def on_message(message):
     if message.content.startswith('$inspire'):
         quote = get_quote()
         await message.channel.send(quote)
+    
+    if message.content.startswith('$heh'):
+        print('heh')
     
 bot.run(TOKEN)
