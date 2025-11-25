@@ -1,2 +1,6 @@
 ./bots/cleaner-bot/venv/
 .env
+venv/
+*/venv/
+bots/cleaner-bot/venv/
+
