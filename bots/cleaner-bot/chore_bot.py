@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 import json
 import os
+from dotenv import load_dotenv
 
 # ---------------------------
 # Predefined Chores & Points
@@ -122,4 +123,6 @@ async def chorelist(ctx):
 # ---------------------------
 # Run Bot
 # ---------------------------
-bot.run("MTQ0Mjk2MTY0NTA3OTg5MjEwMA.GtBFne.EEBEVjzUfw_tBYeSJfNuiIAoyaB1M7T2NuT5ng")
+load_dotenv()
+print(os.getenv("DISCORD_TOKEN"))
+bot.run(os.getenv('DISCORD_TOKEN'))
