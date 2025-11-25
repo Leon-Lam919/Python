@@ -1,2 +1,2 @@
-./bots/cleaner-bot/venv/*
-./bots/cleaner-got/.env
+./bots/cleaner-bot/venv
+./bots/cleaner-bot/.env
