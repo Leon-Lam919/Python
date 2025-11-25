@@ -124,5 +124,4 @@ async def chorelist(ctx):
 # Run Bot
 # ---------------------------
 load_dotenv()
-print(os.getenv("DISCORD_TOKEN"))
 bot.run(os.getenv('DISCORD_TOKEN'))
