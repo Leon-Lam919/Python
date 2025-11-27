@@ -9,12 +9,18 @@ from dotenv import load_dotenv
 # ---------------------------
 
 CHORE_POINTS = {
-    "dishes": 10,
-    "laundry": 15,
-    "vacuum": 20,
-    "trash": 5,
-    "cooking": 12,
-    "mow_lawn": 25
+    "scoop": 5,
+    "sweep bathroom": 15, 
+    "sweep": 10, 
+    "laundry": 5, 
+    "fold laundry": 30,
+    "hang laundry": 10,
+    "work out": 30,
+    "Vacuum living": 15, 
+    "Vacuum office": 10,
+    "Vacuum bedroom": 10,
+    "Dust tv stand": 2,
+    "Bathroom mirror": 3, 
 }
 
 # ---------------------------
@@ -45,10 +51,32 @@ intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 # ---------------------------
+# Help menu
+# ---------------------------
+
+@bot.event
+async def on_message(message):
+    if message.content.strip() == "!":
+        embed = discord.Embed(
+            title="Cleaner bot commands",
+            description="Here are the commands you can use:",
+            color=0x00ff00
+        )
+        for cmd in bot.commands:
+            embed.add_field(
+                name=f"!{cmd.name}",
+                value=cmd.help or "No description provided",
+                inline=False
+            )
+        await message.channel.send(embed=embed)
+
+    await bot.process_commands(message)
+
+# ---------------------------
 # Commands
 # ---------------------------
 
-@bot.command()
+@bot.command(help="Adds points to your account based on what chore completed.")
 async def chore(ctx, chore_name: str):
     """Completes a chore and adds the appropriate points."""
     chore_name = chore_name.lower()
@@ -80,9 +108,12 @@ async def chore(ctx, chore_name: str):
 async def spend(ctx, amount: int):
     """Spend points."""
     user_id = str(ctx.author.id)
-
     if user_id not in points:
         points[user_id] = 0
+
+    if amount <= 0:
+        await ctx.send("❌ You cannot spend negative points\n")
+        return
 
     if points[user_id] < amount:
         await ctx.send(
@@ -93,7 +124,6 @@ async def spend(ctx, amount: int):
 
     points[user_id] -= amount
     save_points(points)
-
     await ctx.send(
         f"💸 {ctx.author.mention} spent **{amount} points**.\n"
         f"Remaining balance: **{points[user_id]} points**"
@@ -101,7 +131,7 @@ async def spend(ctx, amount: int):
 
 
 @bot.command()
-async def points_total(ctx):
+async def total(ctx):
     """Check your point total."""
     user_id = str(ctx.author.id)
     total = points.get(user_id, 0)
