@@ -37,7 +37,7 @@ CHORE_POINTS = {
     "study": 10,
 }
 
-REWARDS = 
+REWARDS = {}
 # -------------------------------
 # Predefined time reset config
 # -------------------------------
