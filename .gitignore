@@ -3,4 +3,4 @@
 venv/
 */venv/
 bots/cleaner-bot/venv/
-
+bots/cleaner-bot/points.json

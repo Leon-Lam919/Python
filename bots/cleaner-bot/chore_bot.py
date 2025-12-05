@@ -18,13 +18,26 @@ CHORE_POINTS = {
     "fold": 30,
     "hang": 10,
     "workout": 30,
-    "Vaclive": 15, 
-    "Vacoffice": 10,
-    "Vacbed": 10,
-    "Dust": 2,
-    "mirror": 3, 
+    "vaclive": 15, 
+    "vacoffice": 10,
+    "vacbed": 10,
+    "dust": 2,
+    "mirror": 3,
+    "mopbath": 15,
+    "mop": 12,
+    "dusteverything": 5,
+    "declutter": 7,
+    "fridge": 5,
+    "random": 10,
+    "work": 3, 
+    "foodprep": 8,
+    "souschef": 25,
+    "gradschool": 10,
+    "workout": 40,
+    "study": 10,
 }
 
+REWARDS = 
 # -------------------------------
 # Predefined time reset config
 # -------------------------------
