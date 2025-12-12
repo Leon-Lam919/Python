@@ -4,7 +4,7 @@ import json
 import os
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
-
+import logging
 
 # ---------------------------
 # Predefined Chores & Points
@@ -37,7 +37,11 @@ CHORE_POINTS = {
     "study": 10,
 }
 
-REWARDS = {}
+REWARDS = {
+    "TV: 1 point = 1 minute",
+    "Leon reading comic: 1 point = 1 minute",
+}
+
 # -------------------------------
 # Predefined time reset config
 # -------------------------------
@@ -47,6 +51,13 @@ DEFAULT_CONFIG = {
     "reset_day": "monday",
     "next_reset_date": None  # Auto-calculated
 }
+
+# -------------------------------
+# Setting up logging for the bot
+# -------------------------------
+logger = logging.getLogger(__name__)
+logging.basicConfig(filename="bot.log", encoding="utf-8", level=logging.INFO)
+logging.getLogger('discord').setLevel(logging.WARNING)
 
 
 # ---------------------------
@@ -212,7 +223,7 @@ async def next_reset(ctx):
 async def on_message(message):
     if message.content.strip() == "!":
         embed = discord.Embed(
-            title="Cleaner bot commands",
+            title="Bank bot commands",
             description="Here are the commands you can use:",
             color=0x00ff00
         )
@@ -231,22 +242,35 @@ async def on_message(message):
 # ---------------------------
 
 @bot.command(help="Adds points to your account based on what chore completed.")
-async def chore(ctx, chore_name: str):
+async def finish(ctx, chore_name: str, amount: int=0):
     """Completes a chore and adds the appropriate points."""
     chore_name = chore_name.lower()
 
+    user_id = str(ctx.author.id)
+    
     if not chore_name:  # Catches None and empty string
-        await ctx.send("❌ Please specify a chore! Example: `!chore sweep`")
+        await ctx.send("❌ Please specify a task! Example: `!finish sweep`")
         return
 
+    if amount > 0:
+        points[user_id] += amount
+        save_points(points)
+        
+        logging.info(f"user {ctx.author.name} completed {chore_name}")
+        await ctx.send(
+            f"✅ {ctx.author.mention} completed **{chore_name}** "
+            f"and earned **{amount} points!**\n"
+            f"💰 New total: **{points[user_id]} points**"
+        )
+        return
+     
     if chore_name not in CHORE_POINTS:
         await ctx.send(
             f"❌ Unknown chore: **{chore_name}**\n"
-            f"Use `!chorelist` to see all available chores."
+            f"Use `!list` to see all available chores."
         )
         return
 
-    user_id = str(ctx.author.id)
 
     if user_id not in points:
         points[user_id] = 0
@@ -254,7 +278,8 @@ async def chore(ctx, chore_name: str):
     earned = CHORE_POINTS[chore_name]
     points[user_id] += earned
     save_points(points)
-
+    
+    logging.info(f"user {ctx.author.name} completed {chore_name}")
     await ctx.send(
         f"✅ {ctx.author.mention} completed **{chore_name}** "
         f"and earned **{earned} points!**\n"
@@ -282,6 +307,9 @@ async def spend(ctx, amount: int):
 
     points[user_id] -= amount
     save_points(points)
+    
+    logging.info(f"user {ctx.author.name} spent {amount} points.")
+
     await ctx.send(
         f"💸 {ctx.author.mention} spent **{amount} points**.\n"
         f"Remaining balance: **{points[user_id]} points**"
@@ -300,9 +328,9 @@ async def total(ctx):
 
 
 @bot.command()
-async def chorelist(ctx):
+async def list(ctx):
     """List all predefined chores and point values."""
-    msg = "**🧹 Available Chores & Points:**\n\n"
+    msg = "**🧹 Available Tasks & Points:**\n\n"
     for chore, pts in CHORE_POINTS.items():
         msg += f"• **{chore}** — {pts} points\n"
 
@@ -312,4 +340,4 @@ async def chorelist(ctx):
 # Run Bot
 # ---------------------------
 load_dotenv()
-bot.run(os.getenv('DISCORD_TOKEN'))
+bot.run(os.getenv('DISCORD_TEST'))
