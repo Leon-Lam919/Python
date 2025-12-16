@@ -1,9 +1,9 @@
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 import json
 import os
 from dotenv import load_dotenv
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 import logging
 
 # ---------------------------
@@ -156,6 +156,34 @@ def check_and_reset_points():
         save_config(config)
         return True
     return False
+
+
+@tasks.loop(time=time(hour=16, minute=0))  # 4 PM
+async def afternoon_reminder():
+    now = datetime.now()
+    day = now.weekday()  # 0=Monday, 6=Sunday
+    
+    channel = bot.get_channel(1450629690497962075)
+    
+    # Monday, Wednesday, Friday
+    if day in [0, 2, 4]:
+        await channel.send("🐱 Sophia scoop check-in time!")
+
+@tasks.loop(time=time(hour=19, minute=0))  # 7 PM
+async def evening_reminder():
+    now = datetime.now()
+    day = now.weekday()  # 0=Monday, 6=Sunday
+    
+    channel = bot.get_channel(1450629690497962075)
+    
+    # Monday, Wednesday, Friday
+    if day in [0, 2, 4]:
+        await channel.send("🐱 Sophia scoop check-in time!")
+
+@bot.event
+async def on_ready():
+    afternoon_reminder.start()
+    evening_reminder.start()
 
 # Discord commands
 @bot.command()
