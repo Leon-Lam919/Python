@@ -5,6 +5,7 @@ import os
 from dotenv import load_dotenv
 from datetime import datetime, timedelta, time
 import logging
+import pytz
 
 # ---------------------------
 # Predefined Chores & Points
@@ -157,8 +158,9 @@ def check_and_reset_points():
         return True
     return False
 
+cst = pytz.timezone('American/Chicago')
 
-@tasks.loop(time=time(hour=16, minute=0))  # 4 PM
+@tasks.loop(time=time(hour=16, minute=0, tzinfo=cst))  # 4 PM
 async def afternoon_reminder():
     now = datetime.now()
     day = now.weekday()  # 0=Monday, 6=Sunday
@@ -169,7 +171,7 @@ async def afternoon_reminder():
     if day in [0, 2, 4]:
         await channel.send("🐱 Sophia scoop check-in time!")
 
-@tasks.loop(time=time(hour=19, minute=0))  # 7 PM
+@tasks.loop(time=time(hour=19, minute=0, tzinfo=cst))  # 7 PM
 async def evening_reminder():
     now = datetime.now()
     day = now.weekday()  # 0=Monday, 6=Sunday
@@ -368,4 +370,4 @@ async def list(ctx):
 # Run Bot
 # ---------------------------
 load_dotenv()
-bot.run(os.getenv('DISCORD_TEST'))
+bot.run(os.getenv('DISCORD_TOKEN'))
