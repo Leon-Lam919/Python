@@ -158,13 +158,12 @@ def check_and_reset_points():
         return True
     return False
 
-cst = pytz.timezone('American/Chicago')
+cst = pytz.timezone('America/Chicago')
 
 @tasks.loop(time=time(hour=16, minute=0, tzinfo=cst))  # 4 PM
 async def afternoon_reminder():
     now = datetime.now()
     day = now.weekday()  # 0=Monday, 6=Sunday
-    
     channel = bot.get_channel(1450629690497962075)
     
     # Monday, Wednesday, Friday
