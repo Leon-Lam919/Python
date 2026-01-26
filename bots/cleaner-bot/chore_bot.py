@@ -24,7 +24,11 @@ RouterClient = TplinkRouterProvider.get_client(ROUTER_IP, ROUTER_PASSWORD).__cla
 
 def block_wifi_indefinite(state=False):
     try:
-        print("Blocking wifi")
+        if not state:
+            print("Blocking wifi.")
+        else: 
+            print("Unblocking wifi.")
+
         client = RouterClient(ROUTER_IP, ROUTER_PASSWORD)
         client.authorize()
         client.set_wifi(GUEST_BAND, state)
@@ -131,7 +135,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 @bot.command()
 @commands.has_permissions(administrator=True)
-async def wifi_on(ctx, status:str):
+async def wifi(ctx, status:str):
     status = status.lower()
     if status == 'on':
         success = await asyncio.get_event_loop().run_in_executor(None, block_wifi_indefinite, True)
@@ -151,15 +155,18 @@ async def wifi_on(ctx, status:str):
 async def timed_wifi(ctx, duration_minutes: int, label: str = "session"):
     """Turn WiFi on for a duration, then off"""
     # Turn ON
+    duration_minutes = duration_minutes - 1
     await ctx.send(f"🔛 WiFi ON for {duration_minutes} minutes ({label})...")
     
     if not await async_wifi_control(True):
         await ctx.send("❌ Failed to turn on WiFi")
         return False
     
+    await asyncio.sleep(60)
     await ctx.send(f"✅ WiFi enabled! Auto-shutoff in {duration_minutes} min.")
     
     # Wait
+    duration_minutes = duration_minutes + 1
     await asyncio.sleep(duration_minutes * 60)
     
     # Turn OFF
@@ -172,17 +179,24 @@ async def timed_wifi(ctx, duration_minutes: int, label: str = "session"):
         await ctx.send("❌ Failed to turn off WiFi")
         return False
 
-# Use it for different meals
 @bot.command(help="Turn on Wifi for 30 minutes for breakfast")
 async def breakfast(ctx):
+    epoch = int((datetime.now() + timedelta(minutes=31)).timestamp())
+    await ctx.send(f"Breakfast will end at: <t:{epoch}:t>")
     await timed_wifi(ctx, 31, "breakfast")
+    
 
 @bot.command(help="Turn on Wifi for 60 minutes for lunch")
 async def lunch(ctx):
+    epoch = int((datetime.now() + timedelta(minutes=61)).timestamp())
+    await ctx.send(f"Lunch will end at: <t:{epoch}:t>")
     await timed_wifi(ctx, 61, "lunch")
+
 
 @bot.command(help="Turn on Wifi for 60 minutes for dinner")
 async def dinner(ctx):
+    epoch = int((datetime.now() + timedelta(minutes=61)).timestamp())
+    await ctx.send(f"Dinner will end at: <t:{epoch}:t>")
     await timed_wifi(ctx, 61, "dinner")
 
 
@@ -445,6 +459,34 @@ async def finish(ctx, chore_name: str, amount: int=0):
         f"💰 New total: **{points[user_id]} points**"
     )
 
+@bot.command(help="Used for no bones day (will take 50 points)")
+async def no_bones(ctx):
+    user_id = str(ctx.author.id)
+    if points[user_id] < 50:
+        await ctx.send("Not enough points to spend on No bones day. :(")
+        return
+    
+    points[user_id] -= 50
+    
+    await ctx.send("Turning on wifi.")
+    block_wifi_indefinite(True)
+    await asyncio.sleep(5)
+
+    now = datetime.now()
+    # Target: 9 PM today (or tomorrow if past 9 PM)
+    nine_pm = datetime.combine(now.date(), time(21, 0))
+    if now >= nine_pm:
+        nine_pm += timedelta(days=1)
+    
+    # Delta as total minutes (integer)
+    delta_minutes = int((nine_pm - now).total_seconds() // 60)
+    epoch = int((datetime.now() + timedelta(minutes=delta_minutes)).timestamp())
+    
+    await ctx.send(f"Wifi on, will turn off at: {epoch}")
+
+    await asyncio.sleep(delta_minutes*60)
+    await ctx.send("Turning off wifi...")
+    block_wifi_indefinite()
 
 @bot.command()
 async def spend(ctx, amount: int):
@@ -466,7 +508,14 @@ async def spend(ctx, amount: int):
 
     points[user_id] -= amount
     save_points(points)
-    
+
+    amount = amount + 1
+    epoch = int((datetime.now() + timedelta(minutes=amount)).timestamp())
+    await ctx.send(f"Break will end at: <t:{epoch}:t>")
+    await timed_wifi(ctx, amount, "Break")
+
+    amount = amount - 1
+
     logging.info(f"user {ctx.author.name} spent {amount} points.")
 
     await ctx.send(
