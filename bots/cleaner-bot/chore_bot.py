@@ -6,6 +6,60 @@ from dotenv import load_dotenv
 from datetime import datetime, timedelta, time
 import logging
 import pytz
+from tplinkrouterc6u import TplinkRouterProvider, Connection, TplinkRouter
+from tplinkrouterc6u.common.exception import ClientError
+import asyncio
+import time as time_module
+
+
+# ===== ROUTER CONFIGURATION =====
+load_dotenv()
+ROUTER_IP = os.getenv('ROUTER_IP', '')
+ROUTER_PASSWORD = os.getenv('ROUTER_PASSWORD','')
+TARGET_MAC = os.getenv('TARGET_MAC','')
+GUEST_BAND= Connection.GUEST_5G
+
+# Get the client class once
+RouterClient = TplinkRouterProvider.get_client(ROUTER_IP, ROUTER_PASSWORD).__class__
+
+def block_wifi_indefinite(state=False):
+    try:
+        print("Blocking wifi")
+        client = RouterClient(ROUTER_IP, ROUTER_PASSWORD)
+        client.authorize()
+        client.set_wifi(GUEST_BAND, state)
+        time_module.sleep(2)
+        status = client.get_status()
+        current_state = status.guest_5g_enable
+        
+        if state == False:
+            if current_state == False:
+                print("The wifi is off.")
+                return True
+            else: 
+                print("Wifi failed to turn off.")
+                return False
+        
+        if state == True:
+            if current_state == True:
+                print("Wifi is turned on.")
+                return True
+            else:
+                print("Wifi failed to turn on.")
+                return False
+
+        client.logout()
+
+    except Exception as e:
+        print(f"❌ Error in wifi turning off: {e}")
+        return False
+
+async def async_wifi_control(state: bool) -> bool:
+    """Helper to run WiFi control in thread pool"""
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(None, block_wifi_indefinite, state)
+
+
 
 # ---------------------------
 # Predefined Chores & Points
@@ -71,6 +125,66 @@ intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 
+# ------------------------------
+# Bot commands for wifi control
+# ------------------------------
+
+@bot.command()
+@commands.has_permissions(administrator=True)
+async def wifi_on(ctx, status:str):
+    status = status.lower()
+    if status == 'on':
+        success = await asyncio.get_event_loop().run_in_executor(None, block_wifi_indefinite, True)
+        if success:
+            await ctx.send(f"Wifi turned on!")
+        else:
+            await ctx.send("Wif was not turned on!")
+    if status == 'off':
+        success = await asyncio.get_event_loop().run_in_executor(None, block_wifi_indefinite, False)
+        if success:
+            await ctx.send(f"Wifi turned off!")
+        else:
+            await ctx.send("Wif was not turned off!")
+    else:
+        ctx.send("Wifi was unable to change to on/off.")
+
+async def timed_wifi(ctx, duration_minutes: int, label: str = "session"):
+    """Turn WiFi on for a duration, then off"""
+    # Turn ON
+    await ctx.send(f"🔛 WiFi ON for {duration_minutes} minutes ({label})...")
+    
+    if not await async_wifi_control(True):
+        await ctx.send("❌ Failed to turn on WiFi")
+        return False
+    
+    await ctx.send(f"✅ WiFi enabled! Auto-shutoff in {duration_minutes} min.")
+    
+    # Wait
+    await asyncio.sleep(duration_minutes * 60)
+    
+    # Turn OFF
+    await ctx.send(f"⏰ {label.capitalize()} time over! Turning WiFi OFF...")
+    
+    if await async_wifi_control(False):
+        await ctx.send("🚫 WiFi is now OFF")
+        return True
+    else:
+        await ctx.send("❌ Failed to turn off WiFi")
+        return False
+
+# Use it for different meals
+@bot.command(help="Turn on Wifi for 30 minutes for breakfast")
+async def breakfast(ctx):
+    await timed_wifi(ctx, 31, "breakfast")
+
+@bot.command(help="Turn on Wifi for 60 minutes for lunch")
+async def lunch(ctx):
+    await timed_wifi(ctx, 61, "lunch")
+
+@bot.command(help="Turn on Wifi for 60 minutes for dinner")
+async def dinner(ctx):
+    await timed_wifi(ctx, 61, "dinner")
+
 
 # ---------------------------
 # Load & Save Point Data
@@ -105,12 +219,11 @@ def save_config(config):
     with open('reset_config.json', 'w') as f:
         json.dump(config, f, indent=2)
 
-def clear_all_points(ctx):
-    user_id = str(ctx.author.id)
-    points[user_id] = 0
-    with open('points.json', 'w') as f:
-        json.dump(points, f, indent=2)
-
+def clear_all_points():
+    data = load_points()
+    for points in data:
+        data[points] = 0
+    save_points(data)
 
 def calculate_next_reset(interval, reset_day=None, custom_date=None):
     now = datetime.now()
@@ -145,7 +258,7 @@ def check_and_reset_points():
     
     if now >= next_reset:
         # DO THE RESET
-        clear_all_points(ctx)
+        clear_all_points()
         
         # Calculate next reset
         config["last_reset"] = str(now.date())
@@ -160,6 +273,9 @@ def check_and_reset_points():
 
 cst = pytz.timezone('America/Chicago')
 
+#@tasks.loop(time=time(minute=1))
+
+#time loops for scooping reminder
 @tasks.loop(time=time(hour=16, minute=0, tzinfo=cst))  # 4 PM
 async def afternoon_reminder():
     now = datetime.now()
@@ -170,6 +286,7 @@ async def afternoon_reminder():
     if day in [0, 2, 4]:
         await channel.send("🐱 Sophia scoop check-in time!")
 
+#time loops for scooping reminder
 @tasks.loop(time=time(hour=19, minute=0, tzinfo=cst))  # 7 PM
 async def evening_reminder():
     now = datetime.now()
@@ -224,7 +341,7 @@ async def set_reset(ctx, interval: str, *, details: str = "monday"):
 @commands.has_permissions(administrator=True)
 async def force_reset(ctx):
     """Immediately clear all points"""
-    clear_all_points(ctx)
+    clear_all_points()
     config = load_config()
     config["last_reset"] = str(datetime.now().date())
     config["next_reset_date"] = str(calculate_next_reset(
@@ -274,7 +391,6 @@ async def on_message(message):
 async def finish(ctx, chore_name: str, amount: int=0):
     """Completes a chore and adds the appropriate points."""
     chore_name = chore_name.lower()
-
     user_id = str(ctx.author.id)
     
     if not chore_name:  # Catches None and empty string
@@ -383,4 +499,4 @@ async def list(ctx):
 # Run Bot
 # ---------------------------
 load_dotenv()
-bot.run(os.getenv('DISCORD_TOKEN'))
+bot.run(os.getenv('DISCORD_TEST'))
