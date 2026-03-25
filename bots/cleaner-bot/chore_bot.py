@@ -96,6 +96,22 @@ CHORE_POINTS = {
     "study": 10,
 }
 
+LEON_TASKS = {
+    "code": 5, 
+    "work": 15,
+    "network": 5,
+    "workout": 10,
+    "leetcode": 20,
+    "keyboard": 5,
+    "cardio": 10,
+}
+
+LEON_REWARDS = {
+    "game": 30,
+    "takeout": 100,
+    "videos": 30,
+}
+
 REWARDS = {
     "TV: 1 point = 1 minute",
     "Leon reading comic: 1 point = 1 minute",
@@ -461,6 +477,66 @@ async def finish(ctx, chore_name: str, amount: int=0):
         f"💰 New total: **{points[user_id]} points**"
     )
 
+
+@bot.command(help="Adds points to your account based on what task is completed.")
+async def lf(ctx, chore_name: str, amount: int=0):
+    """Completes a task and adds the appropriate points."""
+    chore_name = chore_name.lower()
+    user_id = str(ctx.author.id)
+    
+    if not chore_name:  # Catches None and empty string
+        await ctx.send("❌ Please specify a task! Example: `!lf code`")
+        return
+
+    if chore_name == 'study' and amount != 0:
+        amount = amount // 2
+        points[user_id] += amount
+        save_points(points)
+        
+        logging.info(f"user {ctx.author.name} completed {chore_name}")
+        await ctx.send(
+            f"✅ {ctx.author.mention} completed **{chore_name}** "
+            f"and earned **{amount} points!**\n"
+            f"💰 New total: **{points[user_id]} points**"
+        )
+        return
+
+
+    if amount > 0:
+        points[user_id] += amount
+        save_points(points)
+        
+        logging.info(f"user {ctx.author.name} completed {chore_name}")
+        await ctx.send(
+            f"✅ {ctx.author.mention} completed **{chore_name}** "
+            f"and earned **{amount} points!**\n"
+            f"💰 New total: **{points[user_id]} points**"
+        )
+        return
+     
+    if chore_name not in LEON_TASKS:
+        await ctx.send(
+            f"❌ Unknown chore: **{chore_name}**\n"
+            f"Use `!list` to see all available chores."
+        )
+        return
+
+
+    if user_id not in points:
+        points[user_id] = 0
+
+    earned = LEON_TASKS[chore_name]
+    points[user_id] += earned
+    save_points(points)
+    
+    logging.info(f"user {ctx.author.name} completed {chore_name}")
+    await ctx.send(
+        f"✅ {ctx.author.mention} completed **{chore_name}** "
+        f"and earned **{earned} points!**\n"
+        f"💰 New total: **{points[user_id]} points**"
+    )
+
+
 @bot.command(help="Used for no bones day (will take 50 points)")
 async def no_bones(ctx):
     user_id = str(ctx.author.id)
@@ -546,6 +622,16 @@ async def list(ctx):
         msg += f"• **{chore}** — {pts} points\n"
 
     await ctx.send(msg)
+
+@bot.command()
+async def leon(ctx):
+    """List all predefined chores and point values."""
+    msg = "**🧹 Available Tasks & Points:**\n\n"
+    for chore, pts in LEON_TASKS.items():
+        msg += f"• **{chore}** — {pts} points\n"
+
+    await ctx.send(msg)
+
 
 # ---------------------------
 # Run Bot
