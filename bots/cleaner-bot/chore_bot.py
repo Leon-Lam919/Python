@@ -156,14 +156,13 @@ async def timed_wifi(ctx, duration_minutes: int, label: str = "session"):
     """Turn WiFi on for a duration, then off"""
     # Turn ON
     duration_minutes = duration_minutes - 1
-    await ctx.send(f"🔛 WiFi ON for {duration_minutes} minutes ({label})...")
-    
+
     if not await async_wifi_control(True):
         await ctx.send("❌ Failed to turn on WiFi")
         return False
     
     await asyncio.sleep(60)
-    await ctx.send(f"✅ WiFi enabled! Auto-shutoff in {duration_minutes} min.")
+    await ctx.send(f"✅ WiFi enabled!")
     
     # Wait
     duration_minutes = duration_minutes + 1
@@ -179,17 +178,19 @@ async def timed_wifi(ctx, duration_minutes: int, label: str = "session"):
         await ctx.send("❌ Failed to turn off WiFi")
         return False
 
-@bot.command(help="Turn on Wifi for 30 minutes for breakfast")
+@bot.command(help="Turn on Wifi for 45 minutes for breakfast")
 async def breakfast(ctx):
-    epoch = int((datetime.now() + timedelta(minutes=31)).timestamp())
+    epoch = int((datetime.now() + timedelta(minutes=46)).timestamp())
     await ctx.send(f"Breakfast will end at: <t:{epoch}:t>")
-    await timed_wifi(ctx, 31, "breakfast")
+    await ctx.send(f"Breakfast will end in: <t:{epoch}:R>.")
+    await timed_wifi(ctx, 46, "breakfast")
     
 
 @bot.command(help="Turn on Wifi for 60 minutes for lunch")
 async def lunch(ctx):
     epoch = int((datetime.now() + timedelta(minutes=61)).timestamp())
     await ctx.send(f"Lunch will end at: <t:{epoch}:t>")
+    await ctx.send(f"Lunch will end in: <t:{epoch}:R>.")
     await timed_wifi(ctx, 61, "lunch")
 
 
@@ -197,6 +198,7 @@ async def lunch(ctx):
 async def dinner(ctx):
     epoch = int((datetime.now() + timedelta(minutes=61)).timestamp())
     await ctx.send(f"Dinner will end at: <t:{epoch}:t>")
+    await ctx.send(f"Dinner will end in: <t:{epoch}:R>.")
     await timed_wifi(ctx, 61, "dinner")
 
 
@@ -512,6 +514,7 @@ async def spend(ctx, amount: int):
     amount = amount + 1
     epoch = int((datetime.now() + timedelta(minutes=amount)).timestamp())
     await ctx.send(f"Break will end at: <t:{epoch}:t>")
+    await ctx.send(f"Break will end in: <t:{epoch}:R>.")
     await timed_wifi(ctx, amount, "Break")
 
     amount = amount - 1
@@ -548,4 +551,4 @@ async def list(ctx):
 # Run Bot
 # ---------------------------
 load_dotenv()
-bot.run(os.getenv('DISCORD_TEST'))
+bot.run(os.getenv('DISCORD_TOKEN'))
