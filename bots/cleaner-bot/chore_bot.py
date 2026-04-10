@@ -194,15 +194,17 @@ async def timed_wifi(ctx, duration_minutes: int, label: str = "session"):
         await ctx.send("❌ Failed to turn off WiFi")
         return False
 
+
 @bot.command(help="Turn on Wifi for 45 minutes for breakfast")
+@commands.cooldown(1, 28800, commands.BucketType.guild)  # 1 use per 8 hours
 async def breakfast(ctx):
     epoch = int((datetime.now() + timedelta(minutes=46)).timestamp())
     await ctx.send(f"Breakfast will end at: <t:{epoch}:t>")
     await ctx.send(f"Breakfast will end in: <t:{epoch}:R>.")
     await timed_wifi(ctx, 46, "breakfast")
-    
 
 @bot.command(help="Turn on Wifi for 60 minutes for lunch")
+@commands.cooldown(1, 28800, commands.BucketType.guild)  # 1 use per 8 hours
 async def lunch(ctx):
     epoch = int((datetime.now() + timedelta(minutes=61)).timestamp())
     await ctx.send(f"Lunch will end at: <t:{epoch}:t>")
@@ -211,12 +213,23 @@ async def lunch(ctx):
 
 
 @bot.command(help="Turn on Wifi for 60 minutes for dinner")
+@commands.cooldown(1, 28800, commands.BucketType.guild)  # 1 use per 8 hours
 async def dinner(ctx):
     epoch = int((datetime.now() + timedelta(minutes=61)).timestamp())
     await ctx.send(f"Dinner will end at: <t:{epoch}:t>")
     await ctx.send(f"Dinner will end in: <t:{epoch}:R>.")
     await timed_wifi(ctx, 61, "dinner")
 
+@bot.event
+async def on_command_error(ctx, error):
+    if isinstance(error, commands.CommandOnCooldown):
+        retry = round(error.retry_after / 3600, 1)
+        if ctx.command.name == "breakfast":
+            await ctx.send(f"Breakfast was used too recently. Try again in {retry} hours.")
+        elif ctx.command.name == "lunch":
+            await ctx.send(f"Lunch was used too recently. Try again in {retry} hours.")
+        elif ctx.command.name == "dinner":
+            await ctx.send(f"Dinner was used too recently. Try again in {retry} hours.")
 
 # ---------------------------
 # Load & Save Point Data
